@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SAM template for digiForm AI
+  
+# Globals Docs: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+# Function Resource Docs: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+# API Event Source Docs: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+
+
+Globals:
+  Function:
+    Timeout: 30
+
+Resources:
+  # digiForm API Gateway
+  digiFormAPI:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors:
+        AllowMethods: "'POST, OPTIONS'"
+        AllowHeaders: "'content-type'"
+        AllowOrigin: "'*'"
+
+  # Scan File Lambda Function 
+  ScanFileFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: image/
+      Handler: app.lambdaHandler
+      Runtime: nodejs18.x
+      Architectures:
+        - x86_64
+      Policies:
+        - SecretsManagerReadWrite
+      Events:
+        GetImage:
+          Type: Api 
+          Properties:
+            Path: /scanner
+            Method: post
+            RestApiId: !Ref digiFormAPI

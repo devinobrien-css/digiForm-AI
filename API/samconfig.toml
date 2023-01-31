@@ -1,0 +1,13 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "digiForm-serverless-api-stack"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-9rr7iwbk7jdb"
+s3_prefix = "digiForm-serverless-api-stack"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
+profile = "digiForm"
+disable_rollback = true
