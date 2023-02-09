@@ -16,31 +16,46 @@
         # This pdf object will then be updated with the field response values as well as client data upon submission.
 
 class pdfRequest:
-    def __init__(self, name, due, org, fields):
+    def __init__(self, name, due, org, fields, formID):
         # Fields determined by server, replicated from pdfForm before sending this request obj to client
         # This object will be created based off of the associated pdfForm object and sent out upon a delivery request
         self.name = name
         self.due = due
         self.org = org
         self.fields = fields
+        self.formID = formID
+
+    # Display this request object: Mostly debug for now
+    # NOTE: Eventually, will pull up page and populate with field entry instead.
+    def display(self):
+        
+        print("\nForm Title: "+ self.name)
+        print("Form Organizer: "+ self.org.name)
+        print("Form Due Date: "+ self.due)
+        print("-----------------------")
+        for element in self.fields:
+            print(element.name+" is a "+element.type+" with response: "+element.response)
 
 
 class pdfResponse:
-    def __init__(self, responderID, completionDate, fields):
+    def __init__(self, responder, completionDate, fields, formID, org):
 
         # Fields that server will fill in after reciept based on sending client
-        self.completionDate = "NA"
-        self.responderID = -1
+        self.completionDate = completionDate
+        self.responder = responder
         self.fields = fields
+        self.org = org
+        self.formID = formID
     
 class pdfForm:
-    def __init__(self, name, formID, due, org, fields):
+    def __init__(self, name, formID, due, org, fields, path):
 
         # Fields determined by server (on creation)
         self.name = name
         self.due = due
         self.org = org
         self.fields = fields
+        self.path = path
 
         # No responses by default, of course
         # The FormID is used to connect responses to the correct form.
@@ -54,20 +69,25 @@ class pdfForm:
         print("Form Due Date: "+ self.due)
         print("-----------------------")
         for element in self.fields:
-            print(element.name+" is a "+element.type+" with response: "+element.response)
+            print(element.name+" is a "+element.type+" with response: "+element.value)
 
+# A readible struct. We create when a user updates a value for a field 
 class pdfElement:
-    name = ""
-    type = ""
-    response = ""
+    def __init__(self, name, type, value, index):
+        self.name = name
+        self.type = type
+        self.value = value
+        self.index = index
 
 # A class of constants to configure global properties and behavior, mostly semantics.
 class Consts:
     textFieldDisplay = "text"
     checkBoxDisplay = "checkbox"
+
     checkBoxDisplayYes = "Yes"
     checkBoxDisplayNo = "No"
     checkBoxNoState = "/Off"
+    checkBoxYesState = "/0"
 
     # DO NOT EDIT (unless you're really, really smart)
     textTypeID = "/Tx"
