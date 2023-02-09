@@ -73,11 +73,12 @@ class pdfForm:
 
 # A readible struct. We create when a user updates a value for a field 
 class pdfElement:
-    def __init__(self, name, type, value, index):
+    def __init__(self, name, type, value, index, rect):
         self.name = name
         self.type = type
         self.value = value
         self.index = index
+        self.rect = rect
 
 # A class of constants to configure global properties and behavior, mostly semantics.
 class Consts:

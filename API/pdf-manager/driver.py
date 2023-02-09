@@ -34,3 +34,10 @@ myMember.respondToField(1, "Sup bro")
 # Action: when server recieves it will download the document and store it in the correct directory.
 myMember.submitFormResponse() 
 myMember2.submitFormResponse() 
+
+
+#TODO: 
+# Fix weird text being hidden
+# fix empty form throw error with copyPages function
+# check radio compatibility
+# make directory for blank forms???

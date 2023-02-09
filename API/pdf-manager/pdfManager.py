@@ -1,5 +1,8 @@
 from pypdf import PdfReader, PdfWriter
+from pdfrw import PdfReader as reader2, PdfWriter as writer2
 from pdfStructure import pdfForm, pdfElement, Consts
+from pypdf.generic import BooleanObject, NameObject, IndirectObject
+
 
 import shutil
 
@@ -29,18 +32,36 @@ class PdfGenerator():
         org = response.org
         sourceForm = org.getFormByID(response.formID)
 
-        # First, we create a new file copying the blank one
-        # where do we store the response?
-
-        formTitle = sourceForm.name 
         # Used to grab by ID: org.members[response.responderID]
         newFile = formFolder + response.responder.name +".pdf" # Name it responder.pdf
         # shutil.copy(sourceForm.path, newFile)
 
     # TODO: Now we must WRITE TO THE PDF the given fields.
         reader = PdfReader(sourceForm.path)
+        if "/AcroForm" in reader.trailer["/Root"]:
+            reader.trailer["/Root"]["/AcroForm"].update({NameObject("/NeedAppearances"): BooleanObject(True)})
+
         writer = PdfWriter()
         writer.append_pages_from_reader(reader)
+        try:
+            catalog = writer._root_object
+            # get the AcroForm tree
+            if "/AcroForm" not in catalog:
+                writer._root_object.update({
+                    NameObject("/AcroForm"): IndirectObject(len(writer._objects), 0, writer)
+                })
+
+            need_appearances = NameObject("/NeedAppearances")
+            writer._root_object["/AcroForm"][need_appearances] = BooleanObject(True)
+            # del writer._root_object["/AcroForm"]['NeedAppearances']
+
+        except Exception as e:
+            print('set_need_appearances_writer() catch : ', repr(e))
+
+        if "/AcroForm" in writer._root_object:
+            writer._root_object["/AcroForm"].update({NameObject("/NeedAppearances"): BooleanObject(True)})
+
+        
 
         responses = response.fields
 
@@ -57,9 +78,13 @@ class PdfGenerator():
                 writer.update_page_form_field_values( page, {r.name: r.value} )
                 # print("WROTE "+r.value+" to "+ newFile)
 
+        if "/AcroForm" in reader.trailer["/Root"]:
+            writer._root_object.update({NameObject('/AcroForm'): reader.trailer["/Root"]["/AcroForm"]})
+
         # write "output" to pypdf-output.pdf
         with open(newFile, "wb") as output_stream:
             writer.write(output_stream)
+        output_stream.close()
     
     
     # This function will generate a new form object. It can be thought of as "Starting an Event", and members of the organization
@@ -68,41 +93,49 @@ class PdfGenerator():
     def generateForm(path, title, formID, due, org):
 
         reader = PdfReader(path)
+        if "/AcroForm" in reader.trailer["/Root"]:
+            reader.trailer["/Root"]["/AcroForm"].update(
+            {NameObject("/NeedAppearances"): BooleanObject(True)}
+    )
         fields = reader.get_fields()
-
+        
         myFields = []
         fieldIndex = 0
-        
-        for fieldName, fieldData in fields.items():
-            # print(fieldData)
-            curFieldName = ""
-            curFieldType = ""
-            curFieldValue = ""
-            curFieldIndex = fieldIndex
-            
-            curFieldName = fieldName
 
-            # Handle check box metadata
-            if (fieldData["/FT"] == Consts.checkTypeID):
-                curFieldType = "checkbox"
-                if (fieldData["/V"] == Consts.checkBoxNoState):
-                    curFieldValue = Consts.checkBoxDisplayNo
-                else:
-                    curFieldValue = Consts.checkBoxDisplayYes
+        for page in reader.pages:
+            if "/Annots" in page:
+                for annot in page["/Annots"]:
+                    fieldData = annot.get_object()
+                    if (fieldData["/Subtype"] == "/Widget"):
 
-            # Handle text box metadata
-            else:
-                if (fieldData["/FT"] == Consts.textTypeID):
-                    curFieldType = Consts.textFieldDisplay
-                    curFieldValue = fieldData["/V"]
+                        # print(fieldData)
+                        # print("\n")
 
-                    # TODO: ^ Handle KeyError: "/V" here for empty forms values! ^
+                        curFieldType = ""
+                        curFieldValue = ""
+                        curFieldIndex = fieldIndex
+                        curFieldRect = fieldData["/Rect"]
+                        curFieldName = fieldData["/T"]
 
-            # Append this field to our list
-            curField = pdfElement(curFieldName, curFieldType, curFieldValue, curFieldIndex)
-            myFields.append(curField)
-            fieldIndex = fieldIndex + 1
+                        # Handle check box metadata
+                        if (fieldData["/FT"] == Consts.checkTypeID):
+                            curFieldType = "checkbox"
+                            if (fieldData["/V"] == Consts.checkBoxNoState):
+                                curFieldValue = Consts.checkBoxDisplayNo
+                            else:
+                                curFieldValue = Consts.checkBoxDisplayYes
+
+                        # Handle text box metadata
+                        else:
+                            if (fieldData["/FT"] == Consts.textTypeID):
+                                curFieldType = Consts.textFieldDisplay
+                                curFieldValue = fieldData["/V"]
+
+                                # TODO: ^ Handle KeyError: "/V" here for empty forms values! ^
+
+                        # Append this field to our list
+                        curField = pdfElement(curFieldName, curFieldType, curFieldValue, curFieldIndex, curFieldRect)
+                        myFields.append(curField)
+                        fieldIndex = fieldIndex + 1
 
         return pdfForm(title, formID, due, org, myFields, path)
-
- 
