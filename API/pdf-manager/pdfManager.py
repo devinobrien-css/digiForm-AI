@@ -129,9 +129,11 @@ class PdfGenerator():
                         else:
                             if (fieldData["/FT"] == Consts.textTypeID):
                                 curFieldType = Consts.textFieldDisplay
-                                curFieldValue = fieldData["/V"]
-
-                                # TODO: ^ Handle KeyError: "/V" here for empty forms values! ^
+                                try:
+                                    curFieldValue = fieldData["/V"]
+                                except:
+                                    # Field is empty!
+                                    curFieldValue = ""
 
                         # Append this field to our list
                         curField = pdfElement(curFieldName, curFieldType, curFieldValue, curFieldIndex, curFieldRect)

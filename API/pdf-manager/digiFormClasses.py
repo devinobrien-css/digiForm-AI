@@ -1,11 +1,11 @@
 from pdfManager import PdfGenerator
 from pdfStructure import *
-import os
+import os, time, shutil
 
 # Server class 
 class Server:
-    orgs = [] # A list of all organizations
-
+    orgs = [] # A list of all organizations 
+    
     # NOTE: Is this necessary? Can we just pass Organization object around?
     def getOrgByID(self, id):
         return self.orgs[id]
@@ -97,6 +97,7 @@ class Organization:
         self.forms = []
         self.responses = [] # Must be filtered by FormID
         self.members = []
+        self.currentForm = None
 
     # NOTE: This should probably add a Member object. at a minimum, it needs to take more info
     # so that we can properly manage and reference the member
@@ -110,6 +111,11 @@ class Organization:
     def getFormByID(self, id):
         return self.forms[id]
 
+    # Set the currnt form by ID. ID is same as child index in UI when listing all forms.
+    # Current form is used when we want to "Add Existing Responses" we know which form its referred to.
+    def setCurrentForm(self, id):
+        self.currentForm = self.forms[id]
+
     # Organization wants to create a new form using the button. 
     # It must be given a new formID, the number of created forms.
     # returns the form object
@@ -118,6 +124,7 @@ class Organization:
         formID = len(self.forms)
         newForm = PdfGenerator.generateForm(path, title, formID, due, self)
         self.forms.append(newForm)
+        self.currentForm = newForm
         return newForm
 
     # Send a request of this form to this target. Can be a list, or singleton
@@ -181,3 +188,67 @@ class Organization:
         path = "responses/"+formName+"/"
 
         PdfGenerator.generatePdf(response, path)
+
+
+    # I uploaded a form on behalf of members. 
+    # Turn each pdf into a form object
+    # We have a reference to the current form, where we can gather most fields.
+
+    def addExisitngResponses(self):
+        for file in os.listdir("input"):
+            member = None # Each file will have a new member, found below:
+            if file.endswith(".pdf"):
+                path = os.path.join("input", file)
+                # First we must convert to a response object
+                # I will first gather the fields by converting to form object
+                complete = PdfGenerator.generateForm(path, self.currentForm.name, self.currentForm.formID, self.currentForm.due, self.currentForm.org)
+                # I will now use complete.fields to gather the person who responded.
+
+                name = None
+                
+                for field in complete.fields:
+                    if (field.name == "Name" or field.name == "name"):
+                        name = field.value
+                        # NOTE: Future implementation for first / last name?
+                        # Check if this name is a member
+                        multiple = 0
+                        for m in self.members:
+                            if (m.name == name):
+                                if (member != None):
+                                    # WE HAVE FOUND MULTIPLE MEMBERS WHO HAVE THIS NAME. PROMPT
+                                    # A SELECTION TO CHOOSE WHICH MEMBER SENT THIS FORM.
+                                    multiple = multiple + 1
+                                else:
+                                    member = m
+                        if (member == None): # Member does not belong, add them
+                            # TODO: Give the organization a frontend option to add the member
+                            # For now i will do it automatically, but prompt UI to add a member should have
+                            # the ability to edit the details (name, email, phone...)
+                            member = Member(name)
+                            self.members.append(member)
+                        # If we have multiple members with this name, present UI to choose which one
+                        elif (multiple > 0):
+                            #TODO: UI will determine which member (auto - detect halts)
+                            # When response comes, we continue
+                            # NOTE: at this point, member is set to the first occurance of the member that we found w this name
+                            print("Multiple members found with name "+name+"! Add UI to prompt which one in digiFormClasses.addExistingResponse().")
+                        # Here we successfully have set the value of member
+                        break # We already found the member so no need to keep looking
+                if (member == None):
+                    # We failed to set the member because we could not find the name!
+                    # TODO: Present UI with option to select member from list where we can search for a member,
+                    # OR we have option to add a new member as a button at the bottom of the widget.
+                    print("No field 'name' found! Add UI to prompt member selection / addition in digiFormClasses.addExistingResponse().")
+                    return # FOR NOW WE FAIL TO ADD THIS FORM UNTIL WE LEARN HOW TO CHOOSE MEMBER FROM UI AS ABOVE
+                # Member is found!
+                        
+                # Gather time of last modification
+                ti_m = os.path.getmtime(path)
+                m_ti = time.ctime(ti_m)
+
+                # Create and add the complete response to the array of responses
+                response = pdfResponse(member, m_ti, complete.fields, self.currentForm.formID, self.currentForm.org)
+                self.currentForm.responses.append(response) 
+
+                # Add the form file to folder of complete PDF documents
+                self.saveResponseAsPdf(response)
