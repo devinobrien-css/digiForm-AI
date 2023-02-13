@@ -1,4 +1,4 @@
-from pdfManager import PdfGenerator
+from pdfManager import PdfGenerator, PdfReader
 from pdfStructure import *
 import os, time, shutil
 

@@ -13,8 +13,10 @@ Joe = myOrg.addMember("Joe")
 # Org creates the form
 newForm = myOrg.generateNewForm("form.pdf", "Sample Form", "01/01/01")
 
-
-# myOrg.addExisitngResponses()
+# Can add responses that were for example emailed in
+# TODO: NEXT ADD ABILITY TO SUBMIT ON BEHALF OF, IN ORGANIZATION FUNCTION
+# -> submitOnBehalf(response, member) # this member will submit this response.
+#myOrg.addExisitngResponses()
 
 
 # Org sends the form to all members, Bob Recieves it (Bob)
@@ -48,4 +50,3 @@ Joe.submitFormResponse()
 # fix empty form throw error with copyPages function
 # check radio compatibility
 # make directory for blank forms???
-""""""
