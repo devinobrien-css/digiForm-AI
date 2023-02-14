@@ -34,9 +34,8 @@ Joe.selectForm(myOrg, 0)
 # Bob responds no to first checkbox
 Joe.respondToField(0, Consts.checkBoxDisplayYes)
 Bob.respondToField(1, "Sup bro")
-
-# Bob.respondToField(0, "Bob")
-# Joe.respondToField(0, "Joe")
+Bob.respondToField(4, "Bob")
+Joe.respondToField(4, "Joe")
 
 #Submit the currently active form from the earlier selectForm call
 # NOTE: This will occur from frontend when user presses submit button.
@@ -44,6 +43,8 @@ Bob.respondToField(1, "Sup bro")
 Bob.submitFormResponse() 
 Joe.submitFormResponse() 
 
+# Generate excel 
+PdfGenerator.generateExcel(newForm)
 
 #TODO: 
 # Fix weird text being hidden

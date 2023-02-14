@@ -157,7 +157,11 @@ class Organization:
     # We have recieved a member's response! Append it and refresh our view list.
     # We must store this updated list to save the responses on the server
     def receiveFormResponse(self, response):
-        self.responses.append(response)
+        self.responses.append(response) # Cool, but we want to rather store this in the form's response list, not orgs
+        id = response.formID
+        form = self.forms[id]
+        form.responses.append(response)
+
         # TODO: Here we will refresh the UI on desktop to show the new response, and store the new result (database?)
         self.saveResponseAsPdf(response) # Creates a pdf with the responses and saves it to pc
         # TODO: Send email to organization that member has submitted!
@@ -224,6 +228,7 @@ class Organization:
                             # TODO: Give the organization a frontend option to add the member
                             # For now i will do it automatically, but prompt UI to add a member should have
                             # the ability to edit the details (name, email, phone...)
+                            print(name +" was not a member so we have added them. This should prompt org, not just do it by auto!")
                             member = Member(name)
                             self.members.append(member)
                         # If we have multiple members with this name, present UI to choose which one

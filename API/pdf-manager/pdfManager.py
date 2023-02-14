@@ -2,6 +2,7 @@ from pypdf import PdfReader, PdfWriter
 from pdfrw import PdfReader as reader2, PdfWriter as writer2
 from pdfStructure import pdfForm, pdfElement, Consts
 from pypdf.generic import BooleanObject, NameObject, IndirectObject
+import xlsxwriter
 
 
 import shutil
@@ -18,6 +19,40 @@ import shutil
 
 class PdfGenerator():
 
+    # Generate excel from response
+    def generateExcel(form):
+        workbook = xlsxwriter.Workbook(form.name+".xlsx")
+        worksheet = workbook.add_worksheet(form.name)
+
+        # First add the column headers
+        col = 0
+        for field in form.fields:
+            worksheet.write(0, col, field.name)
+            col += 1
+
+        # Next add the data values for each response
+        row = 1
+        for response in form.responses:
+            # Each response has it's own row.
+            row += 1
+            col = 0
+            for field in response.fields:
+                if (field.type == Consts.checkBoxDisplay):
+
+                    if (field.value == Consts.checkBoxYesState):
+                        value = Consts.checkBoxDisplayYes
+                    else:
+                        value = Consts.checkBoxDisplayNo
+
+                    worksheet.write(row, col, value)
+                else:
+                    worksheet.write(row, col, field.value)
+
+                col += 1
+        worksheet.autofit()
+        workbook.close()
+
+        
     # This function will take an existing form response object
     # that has been return with it's responses by a client and create a new blank forum, then fill it in.
     # NOTE: This means we must store 'blank' copy as an attribute in the form object, which will server 3 purposes
