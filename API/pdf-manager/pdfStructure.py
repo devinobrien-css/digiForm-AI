@@ -84,6 +84,7 @@ class pdfElement:
 class Consts:
     textFieldDisplay = "text"
     checkBoxDisplay = "checkbox"
+    mcDisplay = "mc"
 
     checkBoxDisplayYes = "Yes"
     checkBoxDisplayNo = "No"

@@ -11,7 +11,7 @@ Bob = myOrg.addMember("Bob") # Creates and adds the member. Then stores it here 
 Joe = myOrg.addMember("Joe")
 
 # Org creates the form
-newForm = myOrg.generateNewForm("form.pdf", "Sample Form", "01/01/01")
+newForm = myOrg.generateNewForm("form3.pdf", "Student Form", "01/01/01")
 
 # Can add responses that were for example emailed in
 # TODO: NEXT ADD ABILITY TO SUBMIT ON BEHALF OF, IN ORGANIZATION FUNCTION
@@ -31,11 +31,20 @@ Joe.selectForm(myOrg, 0)
 
 # myForm.display() 
 
-# Bob responds no to first checkbox
-Joe.respondToField(0, Consts.checkBoxDisplayYes)
-Bob.respondToField(1, "Sup bro")
-Bob.respondToField(4, "Bob")
-Joe.respondToField(4, "Joe")
+Bob.respondToField(0, "Bob")
+Joe.respondToField(0, "Joe")
+
+Joe.respondToField(1, Consts.checkBoxDisplayYes)
+
+Bob.respondToField(2, "Math")
+Joe.respondToField(2, "Science")
+
+Bob.respondToField(3, "Summer")
+Joe.respondToField(3, "Fall")
+
+Bob.respondToField(5, Consts.checkBoxDisplayYes)
+Joe.respondToField(5, Consts.checkBoxDisplayYes)
+# Joe.respondToField(6, Consts.checkBoxDisplayYes)
 
 #Submit the currently active form from the earlier selectForm call
 # NOTE: This will occur from frontend when user presses submit button.
@@ -48,6 +57,6 @@ PdfGenerator.generateExcel(newForm)
 
 #TODO: 
 # Fix weird text being hidden
-# fix empty form throw error with copyPages function
-# check radio compatibility
+# RADIO - strange behavior when changing response and when choosing not the first option. See commented out.
+# RADIO - in generatePdf, must select the proper button and set it to yesState
 # make directory for blank forms???

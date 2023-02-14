@@ -65,6 +65,7 @@ class Member:
     # NOTE: the fieldIndex will be the ChildIndex of this button in the scroll box
     # when the client is looking at all fields.
 
+    # TODO: When responding to radio button, set all others to no.
     def respondToField(self, fieldIndex, fieldValue):
         response = self.getFieldByIndex(fieldIndex)
 
@@ -76,6 +77,18 @@ class Member:
 
         # NOTE: We can not search by name because radio buttons share a name.
         # TODO: Current write method (genPDF) uses name though i think...
+        # Check if its a radio button
+        if (response.type == Consts.mcDisplay):
+            # It is! Set them all to no, then this one to yes, if we're choosing yes
+            if (response.value == Consts.checkBoxDisplayYes or response.value == Consts.checkBoxYesState):
+                # We said yes to this, so first say no to all others.
+                for field in self.currentForm.fields:
+                    # Is this field a option for our radio button choice?
+                    if (field.name == response.name):
+                        field.value == Consts.checkBoxDisplayNo # Should this be state?
+                # All have been set to no, so set the desired to yes
+                response.value = fieldValue
+
 
     # Return field with this index (NOT "at this index", not necessarily ordered by index, but probably is.)
     def getFieldByIndex(self, index):

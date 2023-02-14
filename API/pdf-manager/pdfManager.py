@@ -23,19 +23,29 @@ class PdfGenerator():
     def generateExcel(form):
         workbook = xlsxwriter.Workbook(form.name+".xlsx")
         worksheet = workbook.add_worksheet(form.name)
+        visitedFields = [] # Used to keep track of radio groups so we only display once
 
         # First add the column headers
         col = 0
+        
         for field in form.fields:
-            worksheet.write(0, col, field.name)
-            col += 1
+            # Was this field already visited? (Used not to dupicate radio field names)
+            if field.name not in visitedFields:
+                # Add this new field
+                worksheet.write(0, col, field.name)
+                visitedFields.append(field.name)
+                col += 1
+            else:
+                pass # Here we can handle duplicate fields, likely MC buttons referencing same question
 
         # Next add the data values for each response
         row = 1
         for response in form.responses:
+            
             # Each response has it's own row.
             row += 1
             col = 0
+            radioIndex = 0 # used to specify which radio index was chosen
             for field in response.fields:
                 if (field.type == Consts.checkBoxDisplay):
 
@@ -44,7 +54,22 @@ class PdfGenerator():
                     else:
                         value = Consts.checkBoxDisplayNo
 
-                    worksheet.write(row, col, value)
+                    worksheet.write(row, col, value) # Write the checkbox response in a readible fashion (yes/no)
+
+                # MANAGE DISPLAY OF MULTIPLE CHOICE
+                # TODO: for the one that is /0 ("Yes"), display its choice ("Male")
+                # TODO: For the ones that are /Off (No) do row -= 1 and the continue to skip it.
+                elif (field.type == Consts.mcDisplay):
+
+                    if (field.value == Consts.checkBoxYesState):
+                        value = "radio.option "+ str(radioIndex)
+                        worksheet.write(row, col, value) # TODO: Write the MC response
+                    else:
+                        row -= 1
+                        radioIndex += 1 #It was not the previous radio option!
+                        continue
+
+                # All other types just write its value! (text)
                 else:
                     worksheet.write(row, col, field.value)
 
@@ -105,11 +130,13 @@ class PdfGenerator():
             # For each response
             for r in responses[:]:
 
-                if (r.type == Consts.checkBoxDisplay):
+                # If this is a checkbox or radio button, we must convert the "No" to "/Off", etc so pdf can understand.
+                if (r.type == Consts.checkBoxDisplay or r.type == Consts.mcDisplay):
                     if (r.value == Consts.checkBoxDisplayYes):
                         r.value = Consts.checkBoxYesState
                     else:
                         r.value = Consts.checkBoxNoState
+                    
                 writer.update_page_form_field_values( page, {r.name: r.value} )
                 # print("WROTE "+r.value+" to "+ newFile)
 
@@ -143,32 +170,55 @@ class PdfGenerator():
                     fieldData = annot.get_object()
                     if (fieldData["/Subtype"] == "/Widget"):
 
-                        # print(fieldData)
-                        # print("\n")
+                        print(fieldData)
+                        print("\n")
 
                         curFieldType = ""
                         curFieldValue = ""
                         curFieldIndex = fieldIndex
                         curFieldRect = fieldData["/Rect"]
-                        curFieldName = fieldData["/T"]
+                        try:
+                            curFieldName = fieldData["/T"]
+                        except: # Key error /T
+                            continue # Skip this bad data type
+                            #curFieldName = "Unsupported_"+str(fieldIndex)
+
+                        try:
+                            fieldTypeID = fieldData["/FT"]
+                        except: # Unsupported field type (MC?)
+                            # fieldTypeID = "UnsupportedType"
+                            continue # Skip this bad data type
 
                         # Handle check box metadata
-                        if (fieldData["/FT"] == Consts.checkTypeID):
-                            curFieldType = "checkbox"
-                            if (fieldData["/V"] == Consts.checkBoxNoState):
-                                curFieldValue = Consts.checkBoxDisplayNo
-                            else:
-                                curFieldValue = Consts.checkBoxDisplayYes
+                        # Is it a check box or radio button
+                        if (fieldTypeID == Consts.checkTypeID):
+                            curFieldType = Consts.mcDisplay # Assume its MultipleChoice
+                            try:
+                                temp = fieldData["/BS"]
+                            except: # This is a check box!
+                                curFieldType = Consts.checkBoxDisplay
+                            
+                            try:
+                                curFieldValue = fieldData["/V"]
+                            except:
+                                # Field is empty!
+                                curFieldValue = ""
 
-                        # Handle text box metadata
-                        else:
-                            if (fieldData["/FT"] == Consts.textTypeID):
-                                curFieldType = Consts.textFieldDisplay
-                                try:
-                                    curFieldValue = fieldData["/V"]
-                                except:
-                                    # Field is empty!
-                                    curFieldValue = ""
+
+                            # Readable values to machine values
+                            if (curFieldValue == Consts.checkBoxYesState):
+                                curFieldValue = Consts.checkBoxDisplayYes
+                            else:
+                                curFieldValue = Consts.checkBoxDisplayNo
+
+                        # Handle text box
+                        elif (fieldTypeID == Consts.textTypeID):
+                            curFieldType = Consts.textFieldDisplay
+                            try:
+                                curFieldValue = fieldData["/V"]
+                            except:
+                                # Field is empty!
+                                curFieldValue = ""
 
                         # Append this field to our list
                         curField = pdfElement(curFieldName, curFieldType, curFieldValue, curFieldIndex, curFieldRect)
