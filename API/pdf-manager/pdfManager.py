@@ -1,7 +1,10 @@
 from pypdf import PdfReader, PdfWriter
-from pdfrw import PdfReader as reader2, PdfWriter as writer2
 from pdfStructure import pdfForm, pdfElement, Consts
-from pypdf.generic import BooleanObject, NameObject, IndirectObject
+from pypdf.generic import BooleanObject, NameObject, IndirectObject, TextStringObject, NumberObject
+from pypdf.constants import *
+import fillpdf
+from fillpdf import fillpdfs
+
 import xlsxwriter
 
 
@@ -23,29 +26,37 @@ class PdfGenerator():
     def generateExcel(form):
         workbook = xlsxwriter.Workbook(form.name+".xlsx")
         worksheet = workbook.add_worksheet(form.name)
-        visitedFields = [] # Used to keep track of radio groups so we only display once
+        visitedGroups = [] # Used to keep track of radio groups so we only display once
 
         # First add the column headers
         col = 0
         
         for field in form.fields:
-            # Was this field already visited? (Used not to dupicate radio field names)
-            if field.name not in visitedFields:
-                # Add this new field
-                worksheet.write(0, col, field.name)
-                visitedFields.append(field.name)
-                col += 1
-            else:
-                pass # Here we can handle duplicate fields, likely MC buttons referencing same question
+            if (field.type == Consts.mcDisplay):
+               
+                # $Group:Value - single choice MC (future implementation perchance)
+                
+                group = field.choiceGroup
 
+                if group not in visitedGroups:
+                    # Add this group field 
+                    worksheet.write(0, col, group)
+                    visitedGroups.append(group)
+                    col += 1
+            else: # Not a multiple choice so display its name
+                worksheet.write(0, col, field.name)
+                col+=1
+       
         # Next add the data values for each response
         row = 1
+        
         for response in form.responses:
             
             # Each response has it's own row.
             row += 1
             col = 0
-            radioIndex = 0 # used to specify which radio index was chosen
+            visitedGroups = []
+            
             for field in response.fields:
                 if (field.type == Consts.checkBoxDisplay):
 
@@ -60,14 +71,39 @@ class PdfGenerator():
                 # TODO: for the one that is /0 ("Yes"), display its choice ("Male")
                 # TODO: For the ones that are /Off (No) do row -= 1 and the continue to skip it.
                 elif (field.type == Consts.mcDisplay):
+       
+                    group = field.choiceGroup
 
-                    if (field.value == Consts.checkBoxYesState):
-                        value = "radio.option "+ str(radioIndex)
-                        worksheet.write(row, col, value) # TODO: Write the MC response
-                    else:
-                        row -= 1
-                        radioIndex += 1 #It was not the previous radio option!
+                    if group not in visitedGroups:
+                        visitedGroups.append(group) # Avoid doing this group twice
+                        values = []
+                        for f in response.fields:
+                            # Iterate again over all fields to find all responses of this group
+                            if (f.type == Consts.mcDisplay):
+                                
+                                g = f.choiceGroup
+                                v = f.choiceValue
+
+                                # This is in our current target group
+                                if (group == g):
+                                    # We responded yes to this field for this group
+                                    if (f.value == Consts.checkBoxYesState):
+                                        
+                                        values.append(v)
+                        # We have aquired all the values for this option in values[].
+                        results = ""
+                        last_i = len(values) - 1
+                        for i in range(len(values)):
+                            if i == last_i:
+                                results += values[i]
+                            else:
+                                results += (values[i] + ", ")
+                        worksheet.write(row, col, results)
+                        
+
+                    else: # Already did this group!
                         continue
+
 
                 # All other types just write its value! (text)
                 else:
@@ -94,59 +130,92 @@ class PdfGenerator():
 
         # Used to grab by ID: org.members[response.responderID]
         newFile = formFolder + response.responder.name +".pdf" # Name it responder.pdf
+        nFile = formFolder + response.responder.name +"2.pdf" # Name it responder.pdf
         # shutil.copy(sourceForm.path, newFile)
 
     # TODO: Now we must WRITE TO THE PDF the given fields.
         reader = PdfReader(sourceForm.path)
-        if "/AcroForm" in reader.trailer["/Root"]:
-            reader.trailer["/Root"]["/AcroForm"].update({NameObject("/NeedAppearances"): BooleanObject(True)})
 
         writer = PdfWriter()
         writer.append_pages_from_reader(reader)
-        try:
-            catalog = writer._root_object
-            # get the AcroForm tree
-            if "/AcroForm" not in catalog:
-                writer._root_object.update({
-                    NameObject("/AcroForm"): IndirectObject(len(writer._objects), 0, writer)
-                })
+        writer.set_need_appearances_writer()
+        responses = response.fields
+        values = []
 
-            need_appearances = NameObject("/NeedAppearances")
-            writer._root_object["/AcroForm"][need_appearances] = BooleanObject(True)
-            # del writer._root_object["/AcroForm"]['NeedAppearances']
+        # For each response
+        for r in responses[:]:
 
-        except Exception as e:
-            print('set_need_appearances_writer() catch : ', repr(e))
 
-        if "/AcroForm" in writer._root_object:
-            writer._root_object["/AcroForm"].update({NameObject("/NeedAppearances"): BooleanObject(True)})
+            # If this is a checkbox or radio button, we must convert the "No" to "/Off", etc so pdf can understand.
+            if (r.type == Consts.checkBoxDisplay or r.type == Consts.mcDisplay):
 
+                if (r.type == Consts.mcDisplay):
+                    pass
+
+                if (r.value == Consts.checkBoxDisplayYes):
+                        r.value = Consts.checkBoxYesState
+                else:
+                        r.value = Consts.checkBoxNoState
+            # Add to our field dict for fields to be updates
+
+            values.append(r.value)
+
+            # Now we update the value since it is now correct.      
+            # writer.update_page_form_field_values(page, {r.name: r.value} )
+            # print("WROTE "+r.value+" to "+ newFile)
+
+        """(re purposed update_page_form_field_values)"""
+        k = 0
+        # On each page 
+        for page in writer.pages:
+            
+            # For each annotation (j is index of annot) on this page
+            for j in range(len( page[PageAttributes.ANNOTS] )):
+
+                writer_annot = page[PageAttributes.ANNOTS][j].get_object()  # type: ignore
+                # print(j, k)
+                
+                # Check if we should ignore this annotation, i.e. if its name is not one of our responses
+                skip = 1
+                for r in responses:
+                    if (r.name == writer_annot.get(FieldDictionaryAttributes.T)):
+                        skip = 0 # Don't skip this one
+                if (skip == 1): # Skip this!
+                    continue #without incrimenting k
+
+               
+                # Update the value. Buttons get an extra value tag
+                if writer_annot.get(FieldDictionaryAttributes.FT) == "/Btn":
+                    writer_annot.update(
+                        {
+                            NameObject(
+                                AnnotationDictionaryAttributes.AS
+                            ): NameObject(values[k])
+                        }
+                    )
+                 
+                
+                writer_annot.update(
+                {
+                    NameObject(FieldDictionaryAttributes.V): 
+                    TextStringObject( values[k] )
+                }
+                )
+                # Make read only
+                # writer_annot.update({NameObject("/Ff"): NumberObject(1)})
+
+                k += 1 # Update total respect field index (index holds across pages)
         
 
-        responses = response.fields
-
-        # On each page
-        for page in writer.pages:
-            # For each response
-            for r in responses[:]:
-
-                # If this is a checkbox or radio button, we must convert the "No" to "/Off", etc so pdf can understand.
-                if (r.type == Consts.checkBoxDisplay or r.type == Consts.mcDisplay):
-                    if (r.value == Consts.checkBoxDisplayYes):
-                        r.value = Consts.checkBoxYesState
-                    else:
-                        r.value = Consts.checkBoxNoState
-                    
-                writer.update_page_form_field_values( page, {r.name: r.value} )
-                # print("WROTE "+r.value+" to "+ newFile)
-
-        if "/AcroForm" in reader.trailer["/Root"]:
-            writer._root_object.update({NameObject('/AcroForm'): reader.trailer["/Root"]["/AcroForm"]})
 
         # write "output" to pypdf-output.pdf
         with open(newFile, "wb") as output_stream:
             writer.write(output_stream)
         output_stream.close()
+        # fillpdfs.flatten_pdf(newFile, 'flat.pdf', True)
+
+
+        
     
     
     # This function will generate a new form object. It can be thought of as "Starting an Event", and members of the organization
@@ -155,23 +224,21 @@ class PdfGenerator():
     def generateForm(path, title, formID, due, org):
 
         reader = PdfReader(path)
-        if "/AcroForm" in reader.trailer["/Root"]:
-            reader.trailer["/Root"]["/AcroForm"].update(
-            {NameObject("/NeedAppearances"): BooleanObject(True)}
-    )
-        fields = reader.get_fields()
         
+    
         myFields = []
         fieldIndex = 0
+
 
         for page in reader.pages:
             if "/Annots" in page:
                 for annot in page["/Annots"]:
+      
                     fieldData = annot.get_object()
+                    #print(fieldData)
+                    #print("\n")
                     if (fieldData["/Subtype"] == "/Widget"):
-
-                        print(fieldData)
-                        print("\n")
+                        
 
                         curFieldType = ""
                         curFieldValue = ""
@@ -192,12 +259,12 @@ class PdfGenerator():
                         # Handle check box metadata
                         # Is it a check box or radio button
                         if (fieldTypeID == Consts.checkTypeID):
-                            curFieldType = Consts.mcDisplay # Assume its MultipleChoice
-                            try:
-                                temp = fieldData["/BS"]
-                            except: # This is a check box!
-                                curFieldType = Consts.checkBoxDisplay
                             
+                            if (curFieldName.find(":") != -1):
+                                curFieldType = Consts.mcDisplay
+                            else: 
+                                 # Checkbox only code
+                                 curFieldType = Consts.checkBoxDisplay
                             try:
                                 curFieldValue = fieldData["/V"]
                             except:

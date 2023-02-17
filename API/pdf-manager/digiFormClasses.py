@@ -73,29 +73,33 @@ class Member:
         if (response != None):
             response.value = fieldValue
             # print("UPDATED VALUE FOR "+self.name+" TO "+ fieldValue)
+        
 
-
-        # NOTE: We can not search by name because radio buttons share a name.
-        # TODO: Current write method (genPDF) uses name though i think...
-        # Check if its a radio button
-        if (response.type == Consts.mcDisplay):
+        # NOTE: Future implementation for single-choice MC - we can set all others to false if its $ single choice
+        # Check if its a radio button (checkbox w $ prefix to denote single choice)
+        if ((response.type == Consts.mcDisplay) and (response.singleChoice == True)):
+            
             # It is! Set them all to no, then this one to yes, if we're choosing yes
             if (response.value == Consts.checkBoxDisplayYes or response.value == Consts.checkBoxYesState):
+                
                 # We said yes to this, so first say no to all others.
                 for field in self.currentForm.fields:
-                    # Is this field a option for our radio button choice?
-                    if (field.name == response.name):
-                        field.value == Consts.checkBoxDisplayNo # Should this be state?
+                    
+                    # Is this field in the group we're targetting?
+                    if (field.choiceGroup == response.choiceGroup):
+                        field.value = Consts.checkBoxDisplayNo
                 # All have been set to no, so set the desired to yes
                 response.value = fieldValue
 
 
     # Return field with this index (NOT "at this index", not necessarily ordered by index, but probably is.)
     def getFieldByIndex(self, index):
+        
         fields = self.currentForm.fields
         for field in fields:
             if (field.index == index):
                 return field
+        print("ERROR")
         return None # Error field not here! Every field in the form shold be copied!
     
 

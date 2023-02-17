@@ -79,6 +79,31 @@ class pdfElement:
         self.value = value
         self.index = index
         self.rect = rect
+        
+        # Multiple choice properties
+        self.singleChoice = False
+        self.choiceGroup = "" # Example: 'Gender'
+        self.choiceValue = "" # Example: 'Female' 
+        # NOTE: self.name is the unformatted, human-defined data. Example: $Gender:Female
+            # NOTE: $ denotes singleResponse, i.e. can only choose one gender at a time.
+        
+        # NOTE: self.value for multiple choice checkbox will be yes or no, denoting whether this value was selected.
+
+        if (type == Consts.mcDisplay):
+
+            # Determine the group and value for this option.
+            args = self.name.split(":")
+
+            self.choiceGroup = args[0]
+            self.choiceValue = args[1]
+
+            # Check if it is single choice only
+            if (self.name.find("$") == 0):
+                self.singleChoice = True
+                self.choiceGroup = self.choiceGroup.removeprefix("$")
+            
+            
+
 
 # A class of constants to configure global properties and behavior, mostly semantics.
 class Consts:
