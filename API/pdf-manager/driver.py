@@ -67,6 +67,7 @@ PdfGenerator.generateExcel(newForm)
 
 #TODO: 
 # Fix weird text being hidden
-# RADIO - strange behavior when changing response and when choosing not the first option. See commented out.
-# RADIO - in generatePdf, must select the proper button and set it to yesState
-# make directory for blank forms???
+# CSV export option
+# Make sure it works w professor's form
+
+

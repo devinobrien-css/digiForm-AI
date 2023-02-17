@@ -160,9 +160,6 @@ class PdfGenerator():
 
             values.append(r.value)
 
-            # Now we update the value since it is now correct.      
-            # writer.update_page_form_field_values(page, {r.name: r.value} )
-            # print("WROTE "+r.value+" to "+ newFile)
 
         """(re purposed update_page_form_field_values)"""
         k = 0
@@ -176,11 +173,12 @@ class PdfGenerator():
                 # print(j, k)
                 
                 # Check if we should ignore this annotation, i.e. if its name is not one of our responses
-                skip = 1
+                skip = True
                 for r in responses:
                     if (r.name == writer_annot.get(FieldDictionaryAttributes.T)):
-                        skip = 0 # Don't skip this one
-                if (skip == 1): # Skip this!
+                        skip = False # Don't skip this one
+
+                if skip: # Skip this!
                     continue #without incrimenting k
 
                
@@ -201,7 +199,7 @@ class PdfGenerator():
                     TextStringObject( values[k] )
                 }
                 )
-                # Make read only
+                # NOTE: Make read only did not fix invisible text issue!
                 # writer_annot.update({NameObject("/Ff"): NumberObject(1)})
 
                 k += 1 # Update total respect field index (index holds across pages)
@@ -212,6 +210,8 @@ class PdfGenerator():
         with open(newFile, "wb") as output_stream:
             writer.write(output_stream)
         output_stream.close()
+
+        #NOTE: Attempt to flatten did not fix invisible text. Try converting to image perhaps
         # fillpdfs.flatten_pdf(newFile, 'flat.pdf', True)
 
 
