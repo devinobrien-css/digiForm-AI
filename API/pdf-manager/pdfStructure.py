@@ -102,7 +102,7 @@ class pdfElement:
                 self.singleChoice = True
                 self.choiceGroup = self.choiceGroup.removeprefix("$")
             
-            
+
 
 
 # A class of constants to configure global properties and behavior, mostly semantics.
@@ -120,3 +120,7 @@ class Consts:
     textTypeID = "/Tx"
     checkTypeID = "/Btn"
     dropTypeID = "/Ch" # /DV is default vals, /Opt is list of options.
+
+    nameFields = ["name", "Name"]
+    firstNameFields = ["firstName", "first", "First", "First Name", "FirstName", "first name", "First name", "Firstname"]
+    lastNameFields = ["lastName", "first", "Last", "Last Name", "LastName", "first name", "Last name", "Lastname"]

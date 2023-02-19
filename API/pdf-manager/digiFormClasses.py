@@ -17,11 +17,11 @@ class Server:
         return newOrg
 
 
-
 # Member class
 class Member:
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, firstName, lastName):
+        self.firstName = firstName
+        self.lastName = lastName
         self.currentForm = None # The request we are viewing / modifying
         self.activeForms = [] # Requests that are in progress
 
@@ -71,11 +71,34 @@ class Member:
 
         # NOTE: This will always be true, because we add all fields by default!
         if (response != None):
-            response.value = fieldValue
+           
+            # Field says firstname, so store the first name
+            if response.name in Consts.firstNameFields:
+                response.value = fieldValue.capitalize()
+
+            # Field says name so its probably first and last
+            elif response.name in Consts.nameFields:
+                splitName = fieldValue.split(" ")
+                
+                # Store first and maybe last name
+                firstName = splitName[0].capitalize()
+                if len(splitName) == 2:
+                    lastName = splitName[1].capitalize()
+                    response.value = firstName+" "+lastName
+                else: # Only have first name
+                    response.value = firstName
+
+                # We are given last name so store last name
+            elif response.name in Consts.lastNameFields:
+                response.value = fieldValue.capitalize()
+            
+            else: # Any non-name field need not be capitalized
+                response.value = fieldValue
+
+
             # print("UPDATED VALUE FOR "+self.name+" TO "+ fieldValue)
         
 
-        # NOTE: Future implementation for single-choice MC - we can set all others to false if its $ single choice
         # Check if its a radio button (checkbox w $ prefix to denote single choice)
         if ((response.type == Consts.mcDisplay) and (response.singleChoice == True)):
             
@@ -84,7 +107,7 @@ class Member:
                 
                 # We said yes to this, so first say no to all others.
                 for field in self.currentForm.fields:
-                    
+
                     # Is this field in the group we're targetting?
                     if (field.choiceGroup == response.choiceGroup):
                         field.value = Consts.checkBoxDisplayNo
@@ -118,10 +141,9 @@ class Organization:
 
     # NOTE: This should probably add a Member object. at a minimum, it needs to take more info
     # so that we can properly manage and reference the member
-    def addMember(self, name):
-        newMember = Member(name)
-        self.members.append(newMember)
-        return newMember
+    def addMember(self, member):
+        self.members.append(member)
+        return member
 
 
     # Return form object by ID
@@ -217,7 +239,11 @@ class Organization:
 
     def addExisitngResponses(self):
         for file in os.listdir("input"):
-            member = None # Each file will have a new member, found below:
+            matches = [] # Each file will have a new member list, found below:
+            member = None
+            firstName = ""
+            lastName = ""
+
             if file.endswith(".pdf"):
                 path = os.path.join("input", file)
                 # First we must convert to a response object
@@ -225,37 +251,70 @@ class Organization:
                 complete = PdfGenerator.generateForm(path, self.currentForm.name, self.currentForm.formID, self.currentForm.due, self.currentForm.org)
                 # I will now use complete.fields to gather the person who responded.
 
-                name = None
+                
                 
                 for field in complete.fields:
-                    if (field.name == "Name" or field.name == "name"):
-                        name = field.value
-                        # NOTE: Future implementation for first / last name?
-                        # Check if this name is a member
-                        multiple = 0
+                    # Field says firstname, so store the first name
+                    if field.name in Consts.firstNameFields:
+                        firstName = field.value.capitalize()
+
+                    # Field says name so its probably first and last
+                    if field.name in Consts.nameFields:
+                        splitName = field.value.split(" ")
+                        
+                        # Store first and maybe last name
+                        firstName = splitName[0].capitalize()
+                        if len(splitName) == 2:
+                            lastName = splitName[1].capitalize()
+
+                     # We are given last name so store last name
+                    if field.name in Consts.lastNameFields:
+                        lastName = field.value.capitalize()
+
+                    """ We have all possible info about the name, now try to find the member(s) matching the criteria """
+                    if lastName:
+                        # We have a last name so find all members with the last name AND first because we will always have first
                         for m in self.members:
-                            if (m.name == name):
-                                if (member != None):
-                                    # WE HAVE FOUND MULTIPLE MEMBERS WHO HAVE THIS NAME. PROMPT
-                                    # A SELECTION TO CHOOSE WHICH MEMBER SENT THIS FORM.
-                                    multiple = multiple + 1
-                                else:
-                                    member = m
-                        if (member == None): # Member does not belong, add them
-                            # TODO: Give the organization a frontend option to add the member
-                            # For now i will do it automatically, but prompt UI to add a member should have
-                            # the ability to edit the details (name, email, phone...)
-                            print(name +" was not a member so we have added them. This should prompt org, not just do it by auto!")
-                            member = Member(name)
-                            self.members.append(member)
-                        # If we have multiple members with this name, present UI to choose which one
-                        elif (multiple > 0):
-                            #TODO: UI will determine which member (auto - detect halts)
-                            # When response comes, we continue
-                            # NOTE: at this point, member is set to the first occurance of the member that we found w this name
-                            print("Multiple members found with name "+name+"! Add UI to prompt which one in digiFormClasses.addExistingResponse().")
-                        # Here we successfully have set the value of member
-                        break # We already found the member so no need to keep looking
+                            if (m.lastName == lastName):
+                                # Now check first name
+                                if (m.firstName == firstName):
+                                    matches.append(m)
+                        # Here our matches must have at least one because we had a last name given.
+                        # If we don't have any matches, it may be because last name not stored in system.
+                        """ Widen search to just look for first names since we found none with last name"""
+                        if len(matches) == 0:
+                            for m in self.members:
+                                if (m.firstName == firstName):
+                                    matches.append(m)
+
+                    # Try just searching first names if we got no matches
+                    else: # We only have first name data
+                        for m in self.members:
+                            if (m.firstName == firstName):
+                                matches.append(m)
+
+                    """ We're ready to parse results. If one is found, perfect! it is our member. """
+                    if len(matches) == 1:
+                        member = matches[0]
+                    
+                    """ We're finished gathering results. If multiple, show UI to select or create new. """
+                    if len(matches) == 0: # No matches found! Must select from all, or add new!
+                        print(firstName + " "+ lastName +" was not a member so we have added them. This should prompt org, not just do it by auto!")
+                        member = Member(firstName, lastName)
+                        self.members.append(member)
+
+                    # If we have multiple members with this name, present UI to choose which one
+                    elif (len(matches) > 1):
+                        #TODO: UI will determine which member (auto - detect halts)
+                        # When response comes, we continue
+                        # NOTE: at this point, member is set to the first occurance of the member that we found w this name
+                        print("Multiple members found with name "+firstName+" "+lastName+"! Add UI to prompt which one in digiFormClasses.addExistingResponse().")
+                    # Here we successfully have set the value of member (after UI prompt)
+
+
+                    break # We already found the member so no need to keep looking
+
+
                 if (member == None):
                     # We failed to set the member because we could not find the name!
                     # TODO: Present UI with option to select member from list where we can search for a member,

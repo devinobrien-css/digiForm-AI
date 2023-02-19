@@ -1,4 +1,4 @@
-from digiFormClasses import Organization, Server
+from digiFormClasses import Organization, Server, Member
 from pdfStructure import pdfResponse, Consts
 from pdfManager import PdfGenerator
 import os
@@ -7,9 +7,13 @@ import os
 server = Server()
 
 myOrg = server.createOrg("ABC Construction")
-Bob = myOrg.addMember("Bob") # Creates and adds the member. Then stores it here for testing
-Joe = myOrg.addMember("Joe")
-Luna = myOrg.addMember("Luna")
+Bob = Member("Bob", "Homie")
+Joe = Member("Joe", "Shmo")
+Luna = Member("Luna", "Bird")
+
+myOrg.addMember(Bob)
+myOrg.addMember(Joe)
+myOrg.addMember(Luna)
 
 # Org creates the form
 newForm = myOrg.generateNewForm("sample.pdf", "My Form", "01/01/01")
@@ -27,8 +31,8 @@ Joe.selectForm(myOrg, 0)
 
 #newForm.display() 
 
-Bob.respondToField(0, "Bob")
-Joe.respondToField(0, "Joe")
+Bob.respondToField(0, "Bob Homie")
+Joe.respondToField(0, "Joe Shmo")
 
 Joe.respondToField(1, Consts.checkBoxDisplayYes)
 
@@ -69,5 +73,8 @@ PdfGenerator.generateExcel(newForm)
 # Fix weird text being hidden
 # CSV export option
 # Make sure it works w professor's form
+# Remove member functions
+# Update member functions
+# Fix the name function
 
 

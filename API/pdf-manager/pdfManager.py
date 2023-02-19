@@ -34,7 +34,6 @@ class PdfGenerator():
         for field in form.fields:
             if (field.type == Consts.mcDisplay):
                
-                # $Group:Value - single choice MC (future implementation perchance)
                 
                 group = field.choiceGroup
 
@@ -68,8 +67,6 @@ class PdfGenerator():
                     worksheet.write(row, col, value) # Write the checkbox response in a readible fashion (yes/no)
 
                 # MANAGE DISPLAY OF MULTIPLE CHOICE
-                # TODO: for the one that is /0 ("Yes"), display its choice ("Male")
-                # TODO: For the ones that are /Off (No) do row -= 1 and the continue to skip it.
                 elif (field.type == Consts.mcDisplay):
        
                     group = field.choiceGroup
@@ -90,14 +87,17 @@ class PdfGenerator():
                                     if (f.value == Consts.checkBoxYesState):
                                         
                                         values.append(v)
-                        # We have aquired all the values for this option in values[].
+                        # We have aquired all the response values for this option in values[].
                         results = ""
                         last_i = len(values) - 1
-                        for i in range(len(values)):
-                            if i == last_i:
-                                results += values[i]
-                            else:
-                                results += (values[i] + ", ")
+                        if not values:
+                            results = "None"
+                        else:
+                            for i in range(len(values)):
+                                if i == last_i:
+                                    results += values[i]
+                                else:
+                                    results += (values[i] + ", ")
                         worksheet.write(row, col, results)
                         
 
@@ -129,8 +129,7 @@ class PdfGenerator():
         sourceForm = org.getFormByID(response.formID)
 
         # Used to grab by ID: org.members[response.responderID]
-        newFile = formFolder + response.responder.name +".pdf" # Name it responder.pdf
-        nFile = formFolder + response.responder.name +"2.pdf" # Name it responder.pdf
+        newFile = formFolder + response.responder.firstName+" "+response.responder.lastName +".pdf" # Name it responder.pdf
         # shutil.copy(sourceForm.path, newFile)
 
     # TODO: Now we must WRITE TO THE PDF the given fields.
@@ -214,9 +213,6 @@ class PdfGenerator():
         #NOTE: Attempt to flatten did not fix invisible text. Try converting to image perhaps
         # fillpdfs.flatten_pdf(newFile, 'flat.pdf', True)
 
-
-        
-    
     
     # This function will generate a new form object. It can be thought of as "Starting an Event", and members of the organization
     # are per say "Invited to the event". In this case, that means being sent a "pdfRequest" object - a request to fill in
