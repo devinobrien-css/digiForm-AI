@@ -24,6 +24,7 @@ class pdfRequest:
         self.org = org
         self.fields = fields
         self.formID = formID
+        self.complete = False
 
     # Display this request object: Mostly debug for now
     # NOTE: Eventually, will pull up page and populate with field entry instead.

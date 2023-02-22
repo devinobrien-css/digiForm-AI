@@ -46,6 +46,8 @@ class Member:
         # In that function, it will be appended to the list of responses. 
         # Then it can be clicked on, at which point the generatePDf(from response) will occur.
 
+        # mark complete 
+        self.currentForm.complete = True
         org = self.currentForm.org
         fields = self.currentForm.fields
         formID = self.currentForm.formID
@@ -176,7 +178,7 @@ class Organization:
             # Not iterable (singleton)
             fields = []
             for field in form.fields[:]:
-                newField = pdfElement(field.name, field.type, field.value, field.index)
+                newField = pdfElement(field.name, field.type, field.value, field.index, field.rect)
                 fields.append(newField)
 
             newReq = pdfRequest(form.name, form.due, self, fields, form.formID)

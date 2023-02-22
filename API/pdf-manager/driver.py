@@ -1,9 +1,10 @@
 from digiFormClasses import Organization, Server, Member
 from pdfStructure import pdfResponse, Consts
 from pdfManager import PdfGenerator
-import os
+from api import Api
 
 # Sample Driver code 
+apiRef = Api()
 server = Server()
 
 myOrg = server.createOrg("ABC Construction")
