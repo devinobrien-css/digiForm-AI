@@ -1,67 +1,44 @@
 import { SafeAreaView, Text, View, TouchableOpacity } from 'react-native'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import axios from 'axios'
 
-const forums = [
-  {
-    name: "Forum1",
-    status: "Pending"
-  },
-  {
-    name: "Forum2",
-    status: "Submitted"
-  },
-  {
-    name: "Forum3",
-    status: "Pending"
-  },
-  {
-    name: "Forum4",
-    status: "Submitted"
-  },
-  {
-    name: "Forum5",
-    status: "Pending"
-  },
-  {
-    name: "Forum6",
-    status: "Pending"
-  },
-  {
-    name: "Forum7",
-    status: "Submitted"
-  },
-  {
-    name: "Forum8",
-    status: "Submitted"
-  }
-]
 
 export default function Dashboard({ switchScreens }: { switchScreens: (status: string) => void }) {
+  const [forums, setForums] : any = useState({})
+  useEffect(()=>{
+    axios.get('http://192.168.1.223:8000/getAllForms/',{
+      data: undefined
+    },).then(res => {
+      setForums(res.data)
+    }).catch((err)=>console.log(err))
+  },[])
   return (
-    <SafeAreaView className='bg-black flex-1'>
-      <Text className='text-white text-3xl m-5'>
+    <SafeAreaView className=' flex-1'>
+      <Text className='text-black text-3xl m-5'>
         Hi there!
       </Text>
-      <View className='bg-white m-2 rounded-3xl p-3'>
-        <Text className='text-black text-xl mb-5'>Your Current Forums</Text>
-        {forums.map((forum: { name: string, status: string }, index) => {
+      <View className='bg-black m-2 rounded-3xl p-5 h-[600]'>
+        <Text className='text-white text-xl my-5'>Your Current Forums</Text>
+        {
+        Object.keys(forums).length > 0 ? 
+         Object.keys(forums).map((key: any, index) => {
           return (
-            <TouchableOpacity key={index} onPress={() => switchScreens(forum.status)}>
-              <View className='bg-slate-300 rounded-lg p-2 mb-3 '>
-                <View className='flex-row justify-between'>
-                  <Text className='text-slate-800 text-sm font-semibold'>Name</Text>
-                  <Text className='text-slate-800 text-sm justify-self-start text-center font-semibold'>Status</Text>
+            <TouchableOpacity key={index} onPress={() => switchScreens(forums[key].complete ? '': 'Form')}>
+              <View className='bg-slate-300 rounded-lg p-3 py-5 mb-3 '>
+                <View className='flex-row justify-between items-center mb-3'>
+                  <Text className='text-slate-800 text-lg'>{forums[key].name}</Text>
+                  <Text className='text-slate-800 text-lg'>{forums[key].due}</Text>
                 </View>
                 <View className='flex-row justify-between items-center'>
-                  <Text className='text-slate-800 text-sm'>{forum.name}</Text>
-                  <View className={`rounded-lg p-1 ${forum.status === 'Pending' ? 'bg-zinc-100' : 'bg-stone-100'}`}>
-                    <Text className='text-slate-800 text-sm'>{forum.status}</Text>
+                  <Text className='text-slate-800 text-sm'>{forums[key].organizer}</Text>
+                  <View className={`rounded-lg p-1 ${forums[key].complete ? 'bg-zinc-100' : 'bg-stone-100'}`}>
+                    <Text className='text-slate-800 text-sm'>{forums[key].complete ? 'Submitted': 'Pending'}</Text>
                   </View>
                 </View>
               </View>
             </TouchableOpacity>
           )
-        })}
+        }):<Text>No Items</Text>}
       </View>
     </SafeAreaView>
   )

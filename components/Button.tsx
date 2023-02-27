@@ -1,4 +1,4 @@
-import { Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Text, TouchableOpacity } from "react-native";
 import { Entypo } from "@expo/vector-icons"
 
 interface button {
@@ -10,24 +10,9 @@ interface button {
 export default function Button(props: button) {
     const { title, onPress, icon, color } = props
     return (
-        <TouchableOpacity onPress={onPress} style={styles.button}>
+        <TouchableOpacity onPress={onPress} className='h-[40] flex-row items-center justify-center'>
             <Entypo name={icon} size={28} color={ color ? color : "f1f1f1"}/>
-            <Text style={styles.text}>{title}</Text>
+            <Text className="text-bold text-md text-black ml-5">{title}</Text>
         </TouchableOpacity>
     )
 }
-
-const styles = StyleSheet.create({
-    button: {
-        height: 40,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center"
-    },
-    text: {
-        fontWeight: "bold",
-        fontSize: 16,
-        color: "#f1f1f1",
-        marginLeft: 10
-    }
-})

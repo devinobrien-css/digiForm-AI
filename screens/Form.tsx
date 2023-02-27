@@ -40,8 +40,11 @@ export default function Form({ switchScreens }: { switchScreens: (status: string
         setCameraStarted(false)
     }
 
+    const fillForm = () => {
+        switchScreens('Fill Form')
+    }
     return (
-        <SafeAreaView className='bg-black flex-1'>
+        <SafeAreaView className='bg-slate-200 flex-1'>
             {cameraStarted ?
                 previewVisible && capturedImage ? (
                     <CameraPreview photo={capturedImage} />
@@ -90,11 +93,14 @@ export default function Form({ switchScreens }: { switchScreens: (status: string
                 )
                 : (
                     <View className='flex-1'>
-                        <View className='p-absolute flex-row '>
-                            <Button title='Go to Dashboard' icon='back' onPress={() => switchScreens('Dashboard')} color="#fff" />
+                        <View className='p-absolute flex-row m-5'>
+                            <Button title='Go to Dashboard' icon='back' onPress={() => switchScreens('Dashboard')} color="#000" />
                         </View>
-                        <View className='flex-1 justify-center'>
-                            <Button title='Scan Document' icon='camera' onPress={startCamera} color="#fff" />
+                        <View className='justify-center mt-10'>
+                            <Button title='Scan Document' icon='camera' onPress={startCamera} color="#000" />
+                        </View>
+                        <View className='justify-center mt-10'>
+                            <Button title='Fill Manually' icon='edit' onPress={fillForm} color="#000" />
                         </View>
                     </View>
                 )
